@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import SlotGame from '@/components/SlotGame';
+import RouletteGame from '@/components/RouletteGame';
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -15,6 +17,7 @@ const Index = () => {
   const [depositOpen, setDepositOpen] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(100);
   const [selectedMethod, setSelectedMethod] = useState('card');
+  const [activeGame, setActiveGame] = useState<{ type: 'slot' | 'roulette'; data?: any } | null>(null);
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,6 +42,28 @@ const Index = () => {
       setDepositOpen(false);
       setSelectedAmount(100);
     }
+  };
+
+  const updateBalance = (newBalance: number) => {
+    if (user) {
+      setUser({ ...user, balance: newBalance });
+    }
+  };
+
+  const openSlot = (slot: any) => {
+    if (!isLoggedIn) {
+      setLoginOpen(true);
+      return;
+    }
+    setActiveGame({ type: 'slot', data: slot });
+  };
+
+  const openRoulette = () => {
+    if (!isLoggedIn) {
+      setLoginOpen(true);
+      return;
+    }
+    setActiveGame({ type: 'roulette' });
   };
 
   const paymentMethods = [
@@ -279,6 +304,29 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
+      {activeGame && user && (
+        <Dialog open={!!activeGame} onOpenChange={() => setActiveGame(null)}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            {activeGame.type === 'slot' && (
+              <SlotGame
+                slotName={activeGame.data.name}
+                slotImage={activeGame.data.image}
+                balance={user.balance}
+                onBalanceChange={updateBalance}
+                onClose={() => setActiveGame(null)}
+              />
+            )}
+            {activeGame.type === 'roulette' && (
+              <RouletteGame
+                balance={user.balance}
+                onBalanceChange={updateBalance}
+                onClose={() => setActiveGame(null)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+
       <main>
         <section className="relative py-20 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20 animate-pulse-slow"></div>
@@ -351,7 +399,7 @@ const Index = () => {
                     </CardDescription>
                   </CardContent>
                   <CardFooter>
-                    <Button className="w-full bg-primary hover:bg-primary/90">
+                    <Button className="w-full bg-primary hover:bg-primary/90" onClick={() => openSlot(slot)}>
                       <Icon name="Play" className="mr-2" size={18} />
                       Играть
                     </Button>
@@ -368,7 +416,11 @@ const Index = () => {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {games.map((game) => (
-                <Card key={game.id} className="bg-card/80 backdrop-blur-sm border-border hover:border-secondary transition-all hover:scale-105 cursor-pointer">
+                <Card 
+                  key={game.id} 
+                  className="bg-card/80 backdrop-blur-sm border-border hover:border-secondary transition-all hover:scale-105 cursor-pointer"
+                  onClick={() => game.id === 1 ? openRoulette() : null}
+                >
                   <CardHeader>
                     <div className="w-16 h-16 mx-auto bg-secondary/20 rounded-full flex items-center justify-center mb-4">
                       <Icon name={game.icon as any} size={32} className="text-secondary" />
@@ -382,8 +434,16 @@ const Index = () => {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button variant="outline" className="w-full border-secondary text-secondary hover:bg-secondary/10">
-                      Играть
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-secondary text-secondary hover:bg-secondary/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (game.id === 1) openRoulette();
+                      }}
+                      disabled={game.id !== 1}
+                    >
+                      {game.id === 1 ? 'Играть' : 'Скоро'}
                     </Button>
                   </CardFooter>
                 </Card>
