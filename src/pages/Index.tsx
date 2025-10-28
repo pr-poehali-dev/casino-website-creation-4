@@ -12,6 +12,9 @@ const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<{ name: string; balance: number } | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [selectedAmount, setSelectedAmount] = useState(100);
+  const [selectedMethod, setSelectedMethod] = useState('card');
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -28,6 +31,24 @@ const Index = () => {
     setIsLoggedIn(true);
     setLoginOpen(false);
   };
+
+  const handleDeposit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (user) {
+      setUser({ ...user, balance: user.balance + selectedAmount });
+      setDepositOpen(false);
+      setSelectedAmount(100);
+    }
+  };
+
+  const paymentMethods = [
+    { id: 'card', name: 'Банковская карта', icon: 'CreditCard', description: 'Visa, Mastercard, МИР' },
+    { id: 'crypto', name: 'Криптовалюта', icon: 'Bitcoin', description: 'BTC, ETH, USDT' },
+    { id: 'wallet', name: 'Электронный кошелек', icon: 'Wallet', description: 'ЮMoney, QIWI' },
+    { id: 'phone', name: 'Мобильный платеж', icon: 'Smartphone', description: 'Оплата со счета телефона' },
+  ];
+
+  const quickAmounts = [50, 100, 250, 500, 1000, 5000];
 
   const slots = [
     { id: 1, name: 'Lucky 777', image: '🎰', jackpot: 50000, hot: true },
@@ -72,6 +93,13 @@ const Index = () => {
           <div className="flex gap-3 items-center">
             {isLoggedIn && user ? (
               <>
+                <Button
+                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground neon-border"
+                  onClick={() => setDepositOpen(true)}
+                >
+                  <Icon name="Plus" className="mr-2" size={18} />
+                  Пополнить
+                </Button>
                 <div className="text-right hidden sm:block">
                   <p className="text-sm text-muted-foreground">{user.name}</p>
                   <p className="text-lg font-bold text-secondary">${user.balance.toLocaleString()}</p>
@@ -144,6 +172,112 @@ const Index = () => {
           </div>
         </div>
       </header>
+
+      <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Icon name="Wallet" size={28} className="text-secondary" />
+              Пополнение баланса
+            </DialogTitle>
+            <DialogDescription>
+              Выберите способ оплаты и сумму пополнения
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleDeposit} className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Быстрый выбор суммы</Label>
+              <div className="grid grid-cols-3 gap-3">
+                {quickAmounts.map((amount) => (
+                  <Button
+                    key={amount}
+                    type="button"
+                    variant={selectedAmount === amount ? "default" : "outline"}
+                    className={selectedAmount === amount ? "bg-secondary text-secondary-foreground" : ""}
+                    onClick={() => setSelectedAmount(amount)}
+                  >
+                    ${amount}
+                  </Button>
+                ))}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="custom-amount">Или введите свою сумму</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id="custom-amount"
+                    type="number"
+                    min="10"
+                    max="50000"
+                    value={selectedAmount}
+                    onChange={(e) => setSelectedAmount(Number(e.target.value))}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Способ оплаты</Label>
+              <div className="grid gap-3">
+                {paymentMethods.map((method) => (
+                  <Card
+                    key={method.id}
+                    className={`cursor-pointer transition-all ${
+                      selectedMethod === method.id
+                        ? 'border-secondary bg-secondary/10'
+                        : 'border-border hover:border-primary'
+                    }`}
+                    onClick={() => setSelectedMethod(method.id)}
+                  >
+                    <CardHeader className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          selectedMethod === method.id ? 'bg-secondary/20' : 'bg-muted'
+                        }`}>
+                          <Icon name={method.icon as any} size={24} className={selectedMethod === method.id ? 'text-secondary' : ''} />
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle className="text-base">{method.name}</CardTitle>
+                          <CardDescription className="text-xs">{method.description}</CardDescription>
+                        </div>
+                        {selectedMethod === method.id && (
+                          <Icon name="CheckCircle2" size={24} className="text-secondary" />
+                        )}
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-muted p-4 rounded-lg space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Сумма пополнения:</span>
+                <span className="font-bold">${selectedAmount}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Комиссия:</span>
+                <span className="font-bold text-green-500">$0</span>
+              </div>
+              <div className="border-t border-border pt-2 flex justify-between">
+                <span className="font-semibold">Итого к оплате:</span>
+                <span className="text-xl font-bold text-secondary">${selectedAmount}</span>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground text-lg py-6"
+            >
+              <Icon name="CreditCard" className="mr-2" size={20} />
+              Пополнить ${selectedAmount}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <main>
         <section className="relative py-20 overflow-hidden">
